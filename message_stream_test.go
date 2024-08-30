@@ -161,7 +161,7 @@ func TestCreateMessagesStream(t *testing.T) {
 	t.Run("Error for empty unknown messages above limit", func(t *testing.T) {
 		emptyMessagesLimit := 100
 		server := test.NewTestServer()
-		server.RegisterHandler("/v1/messages", handlerMessagesStreamEmptyMessages(emptyMessagesLimit, "fake: {}"))
+		server.RegisterHandler("/v1/messages", handlerMessagesStreamEmptyMessages(emptyMessagesLimit+1, "fake: {}"))
 
 		ts := server.AnthropicTestServer()
 		ts.Start()
@@ -171,7 +171,7 @@ func TestCreateMessagesStream(t *testing.T) {
 		client := anthropic.NewClient(
 			test.GetTestToken(),
 			anthropic.WithBaseURL(baseUrl),
-			anthropic.WithEmptyMessagesLimit(uint(emptyMessagesLimit-1)),
+			anthropic.WithEmptyMessagesLimit(uint(emptyMessagesLimit)),
 		)
 		_, err := client.CreateMessagesStream(context.Background(), anthropic.MessagesStreamRequest{
 			MessagesRequest: anthropic.MessagesRequest{

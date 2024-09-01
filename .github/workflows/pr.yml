@@ -10,12 +10,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
         go-version: '1.21'
+
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.2
+
+    - name: Run golangci-lint
+      run: ./bin/golangci-lint run
+
+    - name: Install gosec
+      run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+    - name: Run gosec
+      run: gosec ./...
+
     - name: Run tests
       run: go test -race -covermode=atomic -coverprofile=coverage.out -v .
+
+    - name: Check Go vet
+      run: go vet ./...
+
+    - name: Check Go modules are tidy
+      run: |
+        go mod tidy
+        if [[ -n $(git status --porcelain go.mod go.sum) ]]; then
+          echo "::error::Changes detected in go.mod or go.sum after `go mod tidy`"
+          echo "::error::Please run `go mod tidy` and commit the changes, a diff is shown below:"
+          git diff go.mod go.sum
+          exit 1
+        fi
+
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
       with:

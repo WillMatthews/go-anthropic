@@ -14,9 +14,9 @@ const (
 	requestsLimit     rateLimitHeaderKey = "anthropic-ratelimit-requests-limit"
 	requestsRemaining rateLimitHeaderKey = "anthropic-ratelimit-requests-remaining"
 	requestsReset     rateLimitHeaderKey = "anthropic-ratelimit-requests-reset"
-	tokensLimit       rateLimitHeaderKey = "anthropic-ratelimit-tokens-limit"
-	tokensRemaining   rateLimitHeaderKey = "anthropic-ratelimit-tokens-remaining"
-	tokensReset       rateLimitHeaderKey = "anthropic-ratelimit-tokens-reset"
+	tokensLimit       rateLimitHeaderKey = "anthropic-ratelimit-tokens-limit"     // #nosec G101
+	tokensRemaining   rateLimitHeaderKey = "anthropic-ratelimit-tokens-remaining" // #nosec G101
+	tokensReset       rateLimitHeaderKey = "anthropic-ratelimit-tokens-reset"     // #nosec G101
 	retryAfter        rateLimitHeaderKey = "retry-after"
 )
 

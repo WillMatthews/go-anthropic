@@ -112,7 +112,7 @@ func WithVertexAI(projectID string, location string) ClientOption {
 	return func(c *ClientConfig) {
 		c.BaseURL = vertexBaseURL(projectID, location)
 		c.APIVersion = APIVersionVertex20231016
-		c.Adapter = &VertexAdapter{}
+		c.Adapter = &VertexAdapter{location: location}
 	}
 }
 

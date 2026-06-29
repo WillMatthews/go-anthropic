@@ -1,0 +1,5 @@
+# Test allowlist fixture.
+field_two   # intentionally unsupported field, trailing comment
+
+# blank lines and full-line comments are ignored
+refusal

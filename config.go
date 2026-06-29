@@ -110,15 +110,33 @@ func WithBetaVersion(betaVersion ...BetaVersion) ClientOption {
 
 func WithVertexAI(projectID string, location string) ClientOption {
 	return func(c *ClientConfig) {
-		c.BaseURL = fmt.Sprintf(
-			"https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/anthropic/models",
-			location,
-			projectID,
-			location,
-		)
+		c.BaseURL = vertexBaseURL(projectID, location)
 		c.APIVersion = APIVersionVertex20231016
 		c.Adapter = &VertexAdapter{}
 	}
+}
+
+// vertexBaseURL builds the Vertex AI publisher-models base URL for a location.
+// Vertex exposes three endpoint families, each with a different host:
+//   - global (recommended): https://aiplatform.googleapis.com
+//   - multi-region "us"/"eu": https://aiplatform.<loc>.rep.googleapis.com
+//   - a specific region (e.g. "us-east1"): https://<loc>-aiplatform.googleapis.com
+func vertexBaseURL(projectID, location string) string {
+	var host string
+	switch location {
+	case "global":
+		host = "https://aiplatform.googleapis.com"
+	case "us", "eu":
+		host = fmt.Sprintf("https://aiplatform.%s.rep.googleapis.com", location)
+	default:
+		host = fmt.Sprintf("https://%s-aiplatform.googleapis.com", location)
+	}
+	return fmt.Sprintf(
+		"%s/v1/projects/%s/locations/%s/publishers/anthropic/models",
+		host,
+		projectID,
+		location,
+	)
 }
 
 func WithApiKeyFunc(apiKeyFunc ApiKeyFunc) ClientOption {

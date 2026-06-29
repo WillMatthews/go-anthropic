@@ -46,48 +46,44 @@ func (v *VertexAdapter) TranslateError(resp *http.Response, body []byte) (error,
 	return nil, false
 }
 
-func (v *VertexAdapter) fullURL(baseUrl string, suffix string, model Model) string {
-	// replace the first slash with a colon
-	return fmt.Sprintf("%s/%s:%s", baseUrl, model.asVertexModel(), suffix[1:])
-}
-
-func (v *VertexAdapter) translateUrlSuffix(suffix string, stream bool) (string, error) {
-	switch suffix {
-	case "/messages":
-		if stream {
-			return ":streamRawPredict", nil
-		} else {
-			return ":rawPredict", nil
-		}
-	}
-
-	return "", fmt.Errorf("unknown suffix: %s", suffix)
-}
-
 func (v *VertexAdapter) PrepareRequest(
 	c *Client,
 	method string,
 	urlSuffix string,
 	body any,
 ) (string, error) {
-	// if the body implements the ModelGetter interface, use the model from the body
-	model := Model("")
-	if body != nil {
-		if vertexAISupport, ok := body.(VertexAISupport); ok {
-			model = vertexAISupport.GetModel()
-			vertexAISupport.SetAnthropicVersion(c.config.APIVersion)
-
-			var err error
-			urlSuffix, err = v.translateUrlSuffix(urlSuffix, vertexAISupport.IsStreaming())
-			if err != nil {
-				return "", err
-			}
-		} else {
-			return "", fmt.Errorf("this call is not supported by the Vertex AI API")
-		}
+	support, ok := body.(VertexAISupport)
+	if !ok {
+		return "", fmt.Errorf("this call is not supported by the Vertex AI API")
 	}
 
-	return v.fullURL(c.config.BaseURL, urlSuffix, model), nil
+	// On Vertex AI anthropic_version travels in the request body rather than as
+	// a header. This is set for every supported endpoint.
+	support.SetAnthropicVersion(c.config.APIVersion)
+
+	// modelSegment is the path component immediately before the ":action"
+	// specifier; action is rawPredict or streamRawPredict.
+	var modelSegment, action string
+	switch urlSuffix {
+	case "/messages":
+		// The model is lifted into the URL and cleared from the body.
+		modelSegment = support.GetModel().asVertexModel()
+		support.SetModel("")
+		if support.IsStreaming() {
+			action = "streamRawPredict"
+		} else {
+			action = "rawPredict"
+		}
+	case "/messages/count_tokens":
+		// "count-tokens" is a fixed routing pseudo-model; the real model stays
+		// in the request body so the endpoint knows what to count.
+		modelSegment = "count-tokens"
+		action = "rawPredict"
+	default:
+		return "", fmt.Errorf("unknown suffix: %s", urlSuffix)
+	}
+
+	return fmt.Sprintf("%s/%s:%s", c.config.BaseURL, modelSegment, action), nil
 }
 
 func (v *VertexAdapter) SetRequestHeaders(c *Client, req *http.Request) error {

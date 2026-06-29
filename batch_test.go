@@ -210,7 +210,24 @@ func TestRetrieveBatchResults(t *testing.T) {
 		if err != nil {
 			t.Fatalf("RetrieveBatchResults error: %s", err)
 		}
-		t.Logf("Retrieve Batch Results resp: %+v", resp)
+
+		if len(resp.Responses) != 2 {
+			t.Fatalf("expected 2 decoded responses, got %d", len(resp.Responses))
+		}
+		for i, r := range resp.Responses {
+			wantID := "custom_id_" + strconv.Itoa(i)
+			if r.CustomId != wantID {
+				t.Fatalf("response %d: expected custom_id %q, got %q", i, wantID, r.CustomId)
+			}
+			if r.Result.Type != anthropic.ResultTypeSucceeded {
+				t.Fatalf(
+					"response %d: expected result type %q, got %q",
+					i,
+					anthropic.ResultTypeSucceeded,
+					r.Result.Type,
+				)
+			}
+		}
 	})
 
 	t.Run("retrieve batch results failure", func(t *testing.T) {
@@ -241,15 +258,16 @@ func handleRetrieveBatchResultsEndpoint(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	res := anthropic.RetrieveBatchResultsResponse{
-		Responses: []anthropic.BatchResult{
-			{
-				CustomId: "custom_id_1234",
-				Result:   forgeBatchResult("batch_id_1234"),
-			},
-		},
+	// Real results are returned as JSONL: one JSON object per line.
+	results := []anthropic.BatchResult{
+		{CustomId: "custom_id_0", Result: forgeBatchResult("msg_0")},
+		{CustomId: "custom_id_1", Result: forgeBatchResult("msg_1")},
 	}
-	resBytes, _ = json.Marshal(res)
+	for _, r := range results {
+		line, _ := json.Marshal(r)
+		resBytes = append(resBytes, line...)
+		resBytes = append(resBytes, '\n')
+	}
 	_, _ = w.Write(resBytes)
 }
 

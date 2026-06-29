@@ -722,7 +722,16 @@ type MessagesResponse struct {
 	Model        Model                `json:"model"`
 	StopReason   MessagesStopReason   `json:"stop_reason"`
 	StopSequence string               `json:"stop_sequence"`
+	StopDetails  *StopDetails         `json:"stop_details,omitempty"`
 	Usage        MessagesUsage        `json:"usage"`
+}
+
+// StopDetails provides additional context about why generation stopped.
+// It is populated by the API when stop_reason is "refusal".
+type StopDetails struct {
+	Type        string `json:"type"`
+	Category    string `json:"category,omitempty"`
+	Explanation string `json:"explanation,omitempty"`
 }
 
 // GetFirstContentText get Content[0].Text avoid panic

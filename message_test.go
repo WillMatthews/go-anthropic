@@ -1370,3 +1370,32 @@ func TestMessagesWebSearch(t *testing.T) {
 		)
 	}
 }
+
+func TestMessagesResponseStopDetails(t *testing.T) {
+	body := `{
+		"id": "msg_1",
+		"type": "message",
+		"role": "assistant",
+		"stop_reason": "refusal",
+		"stop_details": {
+			"type": "refusal",
+			"category": "safety",
+			"explanation": "declined"
+		}
+	}`
+	var resp anthropic.MessagesResponse
+	if err := json.Unmarshal([]byte(body), &resp); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if resp.StopReason != anthropic.MessagesStopRefusal {
+		t.Fatalf("unexpected stop reason: %q", resp.StopReason)
+	}
+	if resp.StopDetails == nil {
+		t.Fatalf("expected stop_details, got nil")
+	}
+	if resp.StopDetails.Type != "refusal" ||
+		resp.StopDetails.Category != "safety" ||
+		resp.StopDetails.Explanation != "declined" {
+		t.Fatalf("unexpected stop_details: %+v", resp.StopDetails)
+	}
+}

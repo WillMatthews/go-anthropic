@@ -84,6 +84,13 @@ const (
 	OutputEffortTypeMax    OutputEffortType = "max"
 )
 
+type ServiceTier string
+
+const (
+	ServiceTierAuto         ServiceTier = "auto"
+	ServiceTierStandardOnly ServiceTier = "standard_only"
+)
+
 type DocumentCitations struct {
 	Enabled bool `json:"enabled"`
 }
@@ -109,6 +116,7 @@ type MessagesRequest struct {
 	OutputFormat *OutputFormat        `json:"output_format,omitempty"`
 	OutputConfig *OutputConfig        `json:"output_config,omitempty"`
 	CacheControl *MessageCacheControl `json:"cache_control,omitempty"`
+	ServiceTier  ServiceTier          `json:"service_tier,omitempty"`
 }
 
 func (m MessagesRequest) MarshalJSON() ([]byte, error) {

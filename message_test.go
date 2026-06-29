@@ -1370,3 +1370,30 @@ func TestMessagesWebSearch(t *testing.T) {
 		)
 	}
 }
+
+func TestMessagesRequestServiceTierMarshal(t *testing.T) {
+	reqWith := anthropic.MessagesRequest{
+		Model:       anthropic.ModelClaude3Haiku20240307,
+		MaxTokens:   10,
+		ServiceTier: anthropic.ServiceTierStandardOnly,
+	}
+	b, err := json.Marshal(reqWith)
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+	if !strings.Contains(string(b), `"service_tier":"standard_only"`) {
+		t.Fatalf("expected service_tier present, got: %s", string(b))
+	}
+
+	reqWithout := anthropic.MessagesRequest{
+		Model:     anthropic.ModelClaude3Haiku20240307,
+		MaxTokens: 10,
+	}
+	b, err = json.Marshal(reqWithout)
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+	if strings.Contains(string(b), "service_tier") {
+		t.Fatalf("expected service_tier omitted, got: %s", string(b))
+	}
+}

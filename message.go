@@ -58,6 +58,8 @@ const (
 	MessagesStopReasonToolUse      MessagesStopReason = "tool_use"
 	MessagesStopReasonPauseTurn    MessagesStopReason = "pause_turn"
 	MessagesStopRefusal            MessagesStopReason = "refusal"
+
+	MessagesStopReasonModelContextWindowExceeded MessagesStopReason = "model_context_window_exceeded"
 )
 
 type MessagesContentSourceType string

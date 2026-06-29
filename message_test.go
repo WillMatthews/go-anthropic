@@ -1370,3 +1370,23 @@ func TestMessagesWebSearch(t *testing.T) {
 		)
 	}
 }
+
+func TestMessagesStopReasonModelContextWindowExceeded(t *testing.T) {
+	if anthropic.MessagesStopReasonModelContextWindowExceeded != "model_context_window_exceeded" {
+		t.Fatalf(
+			"unexpected stop reason value: %q",
+			anthropic.MessagesStopReasonModelContextWindowExceeded,
+		)
+	}
+
+	var resp anthropic.MessagesResponse
+	if err := json.Unmarshal(
+		[]byte(`{"stop_reason":"model_context_window_exceeded"}`),
+		&resp,
+	); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if resp.StopReason != anthropic.MessagesStopReasonModelContextWindowExceeded {
+		t.Fatalf("unexpected stop reason: %q", resp.StopReason)
+	}
+}

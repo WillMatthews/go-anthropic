@@ -1,10 +1,25 @@
 package anthropic_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/liushuangls/go-anthropic/v2"
 )
+
+func TestErrorResponseRequestID(t *testing.T) {
+	body := `{"type":"error","request_id":"req_123","error":{"type":"invalid_request_error","message":"bad"}}`
+	var resp anthropic.ErrorResponse
+	if err := json.Unmarshal([]byte(body), &resp); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if resp.RequestID != "req_123" {
+		t.Fatalf("unexpected request_id: %q", resp.RequestID)
+	}
+	if resp.Error == nil || resp.Error.Type != anthropic.ErrTypeInvalidRequest {
+		t.Fatalf("unexpected error payload: %+v", resp.Error)
+	}
+}
 
 func TestIsXError(t *testing.T) {
 	countBool := func(bools []bool) int {

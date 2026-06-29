@@ -76,8 +76,9 @@ type RequestError struct {
 }
 
 type ErrorResponse struct {
-	Type  string    `json:"type"`
-	Error *APIError `json:"error,omitempty"`
+	Type      string    `json:"type"`
+	Error     *APIError `json:"error,omitempty"`
+	RequestID string    `json:"request_id,omitempty"`
 }
 
 func (e *APIError) Error() string {

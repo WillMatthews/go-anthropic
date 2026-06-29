@@ -7,7 +7,64 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 )
+
+// retryBaseDelay is the base delay used for exponential backoff between
+// retries when no positive Retry-After header is provided.
+const retryBaseDelay = 500 * time.Millisecond
+
+// isRetryableStatus reports whether a response with the given status code
+// should be retried.
+func isRetryableStatus(statusCode int) bool {
+	switch statusCode {
+	case http.StatusTooManyRequests, // 429
+		http.StatusInternalServerError, // 500
+		http.StatusBadGateway,          // 502
+		http.StatusServiceUnavailable,  // 503
+		529:                            // overloaded
+		return true
+	default:
+		return false
+	}
+}
+
+// backoffDelay returns the exponential backoff delay for the given attempt
+// (0-based): retryBaseDelay * 2^attempt.
+func backoffDelay(attempt int) time.Duration {
+	return retryBaseDelay * time.Duration(1<<uint(attempt))
+}
+
+// parseRetryAfterSeconds parses the Retry-After header as a number of seconds.
+// It returns a non-positive duration when the header is absent, malformed, or
+// not positive, so callers fall back to exponential backoff.
+func parseRetryAfterSeconds(h http.Header) time.Duration {
+	v := h.Get("Retry-After")
+	if v == "" {
+		return 0
+	}
+	secs, err := strconv.Atoi(v)
+	if err != nil || secs <= 0 {
+		return 0
+	}
+	return time.Duration(secs) * time.Second
+}
+
+// waitForRetry sleeps for delay, returning early if the context is cancelled.
+func waitForRetry(ctx context.Context, delay time.Duration) error {
+	if delay <= 0 {
+		return nil
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
 
 type Client struct {
 	config ClientConfig
@@ -39,10 +96,51 @@ func NewClient(apiKey string, opts ...ClientOption) *Client {
 }
 
 func (c *Client) sendRequest(req *http.Request, v Response) error {
-	res, err := c.config.HTTPClient.Do(req)
-	if err != nil {
-		return err
+	ctx := req.Context()
+
+	var res *http.Response
+	for attempt := 0; ; attempt++ {
+		// Rewind the request body so it can be replayed on retries.
+		if attempt > 0 && req.GetBody != nil {
+			body, gerr := req.GetBody()
+			if gerr != nil {
+				return gerr
+			}
+			req.Body = body
+		}
+
+		var err error
+		res, err = c.config.HTTPClient.Do(req)
+		if err != nil {
+			// Transport error: retry if attempts remain and the context is
+			// still live, otherwise return the error.
+			if attempt < c.config.MaxRetries && ctx.Err() == nil {
+				if werr := waitForRetry(ctx, backoffDelay(attempt)); werr != nil {
+					return werr
+				}
+				continue
+			}
+			return err
+		}
+
+		if attempt < c.config.MaxRetries && isRetryableStatus(res.StatusCode) {
+			// Honor a positive Retry-After, otherwise exponential backoff.
+			delay := parseRetryAfterSeconds(res.Header)
+			if delay <= 0 {
+				delay = backoffDelay(attempt)
+			}
+			// Drain and close the body so the connection can be reused.
+			_, _ = io.Copy(io.Discard, res.Body)
+			res.Body.Close()
+			if werr := waitForRetry(ctx, delay); werr != nil {
+				return werr
+			}
+			continue
+		}
+
+		break
 	}
+
 	defer res.Body.Close()
 
 	v.SetHeader(res.Header)
@@ -51,7 +149,7 @@ func (c *Client) sendRequest(req *http.Request, v Response) error {
 		return err
 	}
 
-	if err = json.NewDecoder(res.Body).Decode(v); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(v); err != nil {
 		return err
 	}
 

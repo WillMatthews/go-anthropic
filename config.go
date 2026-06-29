@@ -8,6 +8,7 @@ import (
 const (
 	anthropicAPIURLv1              = "https://api.anthropic.com/v1"
 	defaultEmptyMessagesLimit uint = 300
+	defaultMaxRetries              = 2
 )
 
 type APIVersion string
@@ -47,6 +48,10 @@ type ClientConfig struct {
 
 	EmptyMessagesLimit uint
 
+	// MaxRetries is the number of times a request is retried on a retryable
+	// response (429/500/502/503/529) or transport error. Zero disables retries.
+	MaxRetries int
+
 	Adapter ClientAdapter
 }
 
@@ -61,6 +66,7 @@ func newConfig(apiKey string, opts ...ClientOption) ClientConfig {
 		HTTPClient: &http.Client{},
 
 		EmptyMessagesLimit: defaultEmptyMessagesLimit,
+		MaxRetries:         defaultMaxRetries,
 		Adapter:            &DefaultAdapter{},
 	}
 
@@ -99,6 +105,15 @@ func WithHTTPClient(cli *http.Client) ClientOption {
 func WithEmptyMessagesLimit(limit uint) ClientOption {
 	return func(c *ClientConfig) {
 		c.EmptyMessagesLimit = limit
+	}
+}
+
+// WithMaxRetries sets how many times a request is retried on a retryable
+// response (429/500/502/503/529) or transport error, using exponential
+// backoff (or a positive Retry-After when provided). The default is 2.
+func WithMaxRetries(n int) ClientOption {
+	return func(c *ClientConfig) {
+		c.MaxRetries = n
 	}
 }
 

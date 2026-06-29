@@ -803,6 +803,9 @@ type ToolDefinition struct {
 	ResponseInclusion *string       `json:"response_inclusion,omitempty"`
 }
 
+// Deprecated: computer_20241022 is a retired tool version that 400s on every
+// model the SDK currently ships (Claude 4+). Use
+// NewComputerUseToolDefinition20250124 instead.
 func NewComputerUseToolDefinition(
 	name string,
 	displayWidthPx int,
@@ -818,6 +821,26 @@ func NewComputerUseToolDefinition(
 	}
 }
 
+// NewComputerUseToolDefinition20250124 returns the current computer use tool
+// (computer_20250124), supported on Claude 4+ models.
+func NewComputerUseToolDefinition20250124(
+	name string,
+	displayWidthPx int,
+	displayHeightPx int,
+	displayNumber *int,
+) ToolDefinition {
+	return ToolDefinition{
+		Type:            "computer_20250124",
+		Name:            name,
+		DisplayWidthPx:  displayWidthPx,
+		DisplayHeightPx: displayHeightPx,
+		DisplayNumber:   displayNumber,
+	}
+}
+
+// Deprecated: text_editor_20241022 is a retired tool version that 400s on every
+// model the SDK currently ships (Claude 4+). Use
+// NewTextEditorToolDefinition20250728 instead.
 func NewTextEditorToolDefinition(name string) ToolDefinition {
 	return ToolDefinition{
 		Type: "text_editor_20241022",
@@ -825,9 +848,31 @@ func NewTextEditorToolDefinition(name string) ToolDefinition {
 	}
 }
 
+// NewTextEditorToolDefinition20250728 returns the current text editor tool
+// (text_editor_20250728). Its required tool name is str_replace_based_edit_tool,
+// so the name argument is ignored.
+func NewTextEditorToolDefinition20250728() ToolDefinition {
+	return ToolDefinition{
+		Type: "text_editor_20250728",
+		Name: "str_replace_based_edit_tool",
+	}
+}
+
+// Deprecated: bash_20241022 is a retired tool version that 400s on every model
+// the SDK currently ships (Claude 4+). Use NewBashToolDefinition20250124
+// instead.
 func NewBashToolDefinition(name string) ToolDefinition {
 	return ToolDefinition{
 		Type: "bash_20241022",
+		Name: name,
+	}
+}
+
+// NewBashToolDefinition20250124 returns the current bash tool (bash_20250124),
+// supported on Claude 4+ models.
+func NewBashToolDefinition20250124(name string) ToolDefinition {
+	return ToolDefinition{
+		Type: "bash_20250124",
 		Name: name,
 	}
 }

@@ -288,3 +288,39 @@ func (c *Client) CancelBatch(
 
 	return &response, err
 }
+
+type DeleteBatchResponseType string
+
+const (
+	DeleteBatchResponseTypeMessageBatchDeleted DeleteBatchResponseType = "message_batch_deleted"
+)
+
+// DeleteBatchResponse is returned by DeleteBatch. The API returns a
+// message_batch_deleted object containing the deleted batch id and type.
+type DeleteBatchResponse struct {
+	httpHeader
+
+	Id   BatchId                 `json:"id"`
+	Type DeleteBatchResponseType `json:"type"`
+}
+
+func (c *Client) DeleteBatch(
+	ctx context.Context,
+	batchId BatchId,
+) (*DeleteBatchResponse, error) {
+	var setters []requestSetter
+	if len(c.config.BetaVersion) > 0 {
+		setters = append(setters, withBetaVersion(c.config.BetaVersion...))
+	}
+
+	urlSuffix := "/messages/batches/" + string(batchId)
+	req, err := c.newRequest(ctx, http.MethodDelete, urlSuffix, nil, setters...)
+	if err != nil {
+		return nil, err
+	}
+
+	var response DeleteBatchResponse
+	err = c.sendRequest(req, &response)
+
+	return &response, err
+}

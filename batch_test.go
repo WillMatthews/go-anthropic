@@ -433,3 +433,68 @@ func forgeBatchResponse(batchId string) anthropic.BatchRespCore {
 		ResultsUrl:        nil,
 	}
 }
+
+func TestDeleteBatch(t *testing.T) {
+	server := test.NewTestServer()
+	server.RegisterHandler("/v1/messages/batches/batch_id_1234", handleDeleteBatchEndpoint)
+	server.RegisterHandler("/v1/messages/batches/batch_id_not_found", handleDeleteBatchEndpoint)
+
+	ts := server.AnthropicTestServer()
+	ts.Start()
+	defer ts.Close()
+
+	baseUrl := ts.URL + "/v1"
+	client := anthropic.NewClient(
+		test.GetTestToken(),
+		anthropic.WithBaseURL(baseUrl),
+		anthropic.WithBetaVersion(anthropic.BetaMessageBatches20240924),
+	)
+
+	t.Run("delete batch success", func(t *testing.T) {
+		resp, err := client.DeleteBatch(context.Background(), "batch_id_1234")
+		if err != nil {
+			t.Fatalf("DeleteBatch error: %s", err)
+		}
+		if resp.Id != "batch_id_1234" {
+			t.Fatalf("unexpected id: %s", resp.Id)
+		}
+		if resp.Type != anthropic.DeleteBatchResponseTypeMessageBatchDeleted {
+			t.Fatalf("unexpected type: %s", resp.Type)
+		}
+	})
+
+	t.Run("delete batch failure", func(t *testing.T) {
+		_, err := client.DeleteBatch(context.Background(), "batch_id_not_found")
+		if err == nil {
+			t.Fatalf("DeleteBatch expected error, got nil")
+		}
+	})
+}
+
+func handleDeleteBatchEndpoint(w http.ResponseWriter, r *http.Request) {
+	var resBytes []byte
+
+	// deleting batches only accepts DELETE requests
+	if r.Method != "DELETE" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	batchId := strings.TrimPrefix(r.URL.Path, "/v1/messages/batches/")
+	if batchId == "" {
+		http.Error(w, "missing batch id", http.StatusBadRequest)
+		return
+	}
+
+	if batchId == "batch_id_not_found" {
+		http.Error(w, "batch not found", http.StatusNotFound)
+		return
+	}
+
+	res := anthropic.DeleteBatchResponse{
+		Id:   anthropic.BatchId(batchId),
+		Type: anthropic.DeleteBatchResponseTypeMessageBatchDeleted,
+	}
+	resBytes, _ = json.Marshal(res)
+	_, _ = w.Write(resBytes)
+}

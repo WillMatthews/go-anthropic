@@ -92,3 +92,8 @@ func (e *RequestError) Error() string {
 		e.Body,
 	)
 }
+
+// Unwrap exposes the wrapped cause so errors.Is/errors.As can reach it.
+func (e *RequestError) Unwrap() error {
+	return e.Err
+}

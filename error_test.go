@@ -1,10 +1,30 @@
 package anthropic_test
 
 import (
+	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/liushuangls/go-anthropic/v2"
 )
+
+func TestRequestErrorUnwrap(t *testing.T) {
+	// A JSON syntax error is a realistic wrapped cause (malformed body).
+	cause := &json.SyntaxError{}
+	reqErr := &anthropic.RequestError{
+		StatusCode: 500,
+		Err:        cause,
+		Body:       []byte("not json"),
+	}
+
+	var target *json.SyntaxError
+	if !errors.As(reqErr, &target) {
+		t.Fatalf("errors.As failed to reach wrapped cause via Unwrap")
+	}
+	if !errors.Is(reqErr, cause) {
+		t.Fatalf("errors.Is failed to match wrapped cause via Unwrap")
+	}
+}
 
 func TestIsXError(t *testing.T) {
 	countBool := func(bools []bool) int {

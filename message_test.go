@@ -1370,3 +1370,16 @@ func TestMessagesWebSearch(t *testing.T) {
 		)
 	}
 }
+
+func TestMessagesUsageServiceTier(t *testing.T) {
+	var resp anthropic.MessagesResponse
+	if err := json.Unmarshal(
+		[]byte(`{"usage":{"input_tokens":10,"output_tokens":20,"service_tier":"standard"}}`),
+		&resp,
+	); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if resp.Usage.ServiceTier != "standard" {
+		t.Fatalf("unexpected service tier: %q", resp.Usage.ServiceTier)
+	}
+}

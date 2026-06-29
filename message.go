@@ -749,6 +749,9 @@ type MessagesUsage struct {
 	CacheCreation MessageUsageCacheCreation `json:"cache_creation"`
 
 	ServerToolUse *ServerToolUsage `json:"server_tool_use,omitempty"`
+
+	// The service tier used for processing the request, as returned by the API.
+	ServiceTier string `json:"service_tier,omitempty"`
 }
 
 type MessageUsageCacheCreation struct {

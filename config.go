@@ -13,8 +13,9 @@ const (
 type APIVersion string
 
 const (
-	APIVersion20230601       APIVersion = "2023-06-01"
-	APIVersionVertex20231016 APIVersion = "vertex-2023-10-16"
+	APIVersion20230601        APIVersion = "2023-06-01"
+	APIVersionVertex20231016  APIVersion = "vertex-2023-10-16"
+	APIVersionBedrock20230531 APIVersion = "bedrock-2023-05-31"
 )
 
 type BetaVersion string
@@ -118,6 +119,27 @@ func WithVertexAI(projectID string, location string) ClientOption {
 		)
 		c.APIVersion = APIVersionVertex20231016
 		c.Adapter = &VertexAdapter{}
+	}
+}
+
+// WithBedrock configures the client to talk to Claude on Amazon Bedrock via the
+// bedrock-runtime InvokeModel REST API in the given AWS region.
+//
+// Authentication is intentionally left to the caller: Bedrock requires AWS
+// SigV4-signed requests, so supply an *http.Client whose transport signs
+// outbound requests (e.g. built on aws-sdk-go-v2) via WithHTTPClient. The
+// adapter sets no auth headers of its own, keeping this library dependency-free.
+//
+// Pass full Bedrock model IDs as the request Model (e.g.
+// "global.anthropic.claude-opus-4-6-v1" or
+// "us.anthropic.claude-sonnet-4-5-20250929-v1:0"); they are placed directly in
+// the request URL. To target a custom endpoint (e.g. a VPC endpoint), apply
+// WithBaseURL after WithBedrock.
+func WithBedrock(region string) ClientOption {
+	return func(c *ClientConfig) {
+		c.BaseURL = fmt.Sprintf("https://bedrock-runtime.%s.amazonaws.com", region)
+		c.APIVersion = APIVersionBedrock20230531
+		c.Adapter = &BedrockAdapter{}
 	}
 }
 

@@ -113,20 +113,32 @@ type MessagesRequest struct {
 
 func (m MessagesRequest) MarshalJSON() ([]byte, error) {
 	type Alias MessagesRequest
-	aux := struct {
+
+	var system interface{}
+	if len(m.MultiSystem) > 0 {
+		system = m.MultiSystem
+	} else if len(m.System) > 0 {
+		system = m.System
+	}
+
+	// On cloud providers such as Amazon Bedrock and Vertex AI the model is
+	// carried in the request URL rather than the body, and anthropic_version is
+	// sent in the body. The adapter signals this mode by setting AnthropicVersion
+	// and clearing Model. In that case the empty "model" field must be omitted
+	// entirely — the direct Anthropic API keeps it (it has no omitempty, see
+	// #117) so a missing model surfaces a clear server-side error.
+	if m.AnthropicVersion != "" && m.Model == "" {
+		return json.Marshal(struct {
+			Model  Model       `json:"model,omitempty"`
+			System interface{} `json:"system,omitempty"`
+			Alias
+		}{System: system, Alias: (Alias)(m)})
+	}
+
+	return json.Marshal(struct {
 		System interface{} `json:"system,omitempty"`
 		Alias
-	}{
-		Alias: (Alias)(m),
-	}
-
-	if len(m.MultiSystem) > 0 {
-		aux.System = m.MultiSystem
-	} else if len(m.System) > 0 {
-		aux.System = m.System
-	}
-
-	return json.Marshal(aux)
+	}{System: system, Alias: (Alias)(m)})
 }
 
 var _ VertexAISupport = (*MessagesRequest)(nil)
@@ -137,7 +149,19 @@ func (m MessagesRequest) GetModel() Model {
 
 func (m *MessagesRequest) SetAnthropicVersion(version APIVersion) {
 	m.AnthropicVersion = string(version)
-	m.Model = ""
+}
+
+// SetModel sets the model on the request. Cloud adapters (e.g. Amazon Bedrock,
+// Vertex AI) clear it once the model has been lifted into the request URL.
+func (m *MessagesRequest) SetModel(model Model) {
+	m.Model = model
+}
+
+// SetStream sets the streaming flag on the request. The Bedrock adapter clears
+// it for streaming calls because the stream is implied by the invoke endpoint
+// and must not appear in the request body.
+func (m *MessagesRequest) SetStream(stream bool) {
+	m.Stream = stream
 }
 
 func (m *MessagesRequest) SetTemperature(t float32) {

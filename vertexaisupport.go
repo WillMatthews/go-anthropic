@@ -7,6 +7,7 @@ package anthropic
 // This interface allows the vertex ai changes to be contained in the client code, and not leak to each indivdual request definition.
 type VertexAISupport interface {
 	GetModel() Model
+	SetModel(Model)
 	SetAnthropicVersion(APIVersion)
 	IsStreaming() bool
 }

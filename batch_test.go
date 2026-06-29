@@ -282,7 +282,7 @@ func TestListBatches(t *testing.T) {
 
 	t.Run("list failure: limit too high", func(t *testing.T) {
 		_, err := client.ListBatches(context.Background(), anthropic.ListBatchesRequest{
-			Limit:    toPtr(101),
+			Limit:    toPtr(1001),
 			BeforeId: nil,
 			AfterId:  nil,
 		})

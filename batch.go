@@ -220,8 +220,8 @@ type ListBatchesRequest struct {
 }
 
 func (l ListBatchesRequest) validate() error {
-	if l.Limit != nil && (*l.Limit < 1 || *l.Limit > 100) {
-		return errors.New("limit must be between 1 and 100")
+	if l.Limit != nil && (*l.Limit < 1 || *l.Limit > 1000) {
+		return errors.New("limit must be between 1 and 1000")
 	}
 
 	return nil

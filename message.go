@@ -832,10 +832,22 @@ func NewBashToolDefinition(name string) ToolDefinition {
 	}
 }
 
+type ToolChoiceType string
+
+const (
+	ToolChoiceTypeAuto ToolChoiceType = "auto"
+	ToolChoiceTypeAny  ToolChoiceType = "any"
+	ToolChoiceTypeTool ToolChoiceType = "tool"
+	ToolChoiceTypeNone ToolChoiceType = "none"
+)
+
 type ToolChoice struct {
-	// oneof: auto(default) any tool
-	Type string `json:"type"`
+	// Type is one of auto (default), any, tool, none.
+	Type ToolChoiceType `json:"type"`
+	// Name is the tool name to force, used only with Type == ToolChoiceTypeTool.
 	Name string `json:"name,omitempty"`
+	// DisableParallelToolUse, when set, forces Claude to use at most one tool.
+	DisableParallelToolUse *bool `json:"disable_parallel_tool_use,omitempty"`
 }
 
 type Thinking struct {

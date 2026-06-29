@@ -496,7 +496,7 @@ func TestMessagesRateLimitHeaders(t *testing.T) {
 		"anthropic-ratelimit-output-tokens-limit":     100,
 		"anthropic-ratelimit-output-tokens-remaining": 100,
 		"anthropic-ratelimit-output-tokens-reset":     "2024-06-04T07:13:19Z",
-		"retry-after": -1, // if not present, should be -1
+		"retry-after": 0, // if not present, should be 0 (no sentinel)
 	}
 
 	requestFailRateLimitHeaders := make(map[string]string)

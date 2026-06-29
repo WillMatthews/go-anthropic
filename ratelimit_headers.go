@@ -58,12 +58,22 @@ type RateLimitHeaders struct {
 func newRateLimitHeaders(h http.Header) (RateLimitHeaders, error) {
 	var errs []error
 
+	// parseIntHeader distinguishes an absent header from a malformed one:
+	//   - absent (Get() == ""): returns 0. It is only an error when required.
+	//   - malformed (non-numeric): always an error, even when optional, since
+	//     it signals a real parse problem rather than absence.
+	// It never returns a sentinel such as -1, which previously masked parse
+	// errors and produced negative values (e.g. a negative RetryAfter backoff).
 	parseIntHeader := func(key rateLimitHeaderKey, required bool) int {
-		value, err := strconv.Atoi(h.Get(string(key)))
-		if err != nil {
-			if !required {
-				return -1
+		raw := h.Get(string(key))
+		if raw == "" {
+			if required {
+				errs = append(errs, fmt.Errorf("missing %s", key))
 			}
+			return 0
+		}
+		value, err := strconv.Atoi(raw)
+		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to parse %s: %w", key, err))
 			return 0
 		}

@@ -30,6 +30,19 @@ const (
 	MessagesContentTypeRedactedThinking    MessagesContentType = "redacted_thinking"
 	MessagesContentTypeServerToolUse       MessagesContentType = "server_tool_use"
 	MessagesContentTypeWebSearchToolResult MessagesContentType = "web_search_tool_result"
+	MessagesContentTypeWebFetchToolResult  MessagesContentType = "web_fetch_tool_result"
+	// Code execution result blocks. code_execution_20260521 returns
+	// bash_code_execution_tool_result; older variants return the bare
+	// code_execution_tool_result.
+	MessagesContentTypeCodeExecutionToolResult     MessagesContentType = "code_execution_tool_result"
+	MessagesContentTypeBashCodeExecutionToolResult MessagesContentType = "bash_code_execution_tool_result"
+)
+
+// Server tool type/version identifiers for ToolDefinition.Type.
+const (
+	ToolTypeWebSearch20260209     = "web_search_20260209"
+	ToolTypeWebFetch20260209      = "web_fetch_20260209"
+	ToolTypeCodeExecution20260521 = "code_execution_20260521"
 )
 
 type CitationType string
@@ -288,6 +301,14 @@ type MessageContent struct {
 	*MessageContentThinking
 
 	*MessageContentRedactedThinking
+
+	// Server tool result blocks. These are named (not embedded) and excluded
+	// from default (un)marshaling to avoid field-name collisions with the
+	// other *ToolResult content; they are populated explicitly in
+	// UnmarshalJSON. Their Content is a minimal passthrough (raw JSON) so the
+	// blocks are surfaced rather than silently dropped.
+	WebFetchToolResult      *MessageContentWebFetchToolResult      `json:"-"`
+	CodeExecutionToolResult *MessageContentCodeExecutionToolResult `json:"-"`
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for MessageContent
@@ -347,6 +368,21 @@ func (m *MessageContent) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		m.MessageContentWebSearchToolResult = &webSearchResult
+
+	case MessagesContentTypeWebFetchToolResult:
+		var webFetchResult MessageContentWebFetchToolResult
+		if err := json.Unmarshal(data, &webFetchResult); err != nil {
+			return err
+		}
+		m.WebFetchToolResult = &webFetchResult
+
+	case MessagesContentTypeCodeExecutionToolResult,
+		MessagesContentTypeBashCodeExecutionToolResult:
+		var codeExecResult MessageContentCodeExecutionToolResult
+		if err := json.Unmarshal(data, &codeExecResult); err != nil {
+			return err
+		}
+		m.CodeExecutionToolResult = &codeExecResult
 
 	case MessagesContentTypeThinking,
 		MessagesContentTypeThinkingDelta,
@@ -630,6 +666,50 @@ func NewMessageContentWebSearchToolResult(
 	return &MessageContentWebSearchToolResult{
 		ToolUseID: &toolUseID,
 		Content:   content,
+	}
+}
+
+// MessageContentWebFetchToolResult is a minimal model of a web_fetch_tool_result
+// content block. Content is left as raw JSON (the fetched document or an error
+// object) for forward compatibility; richer modeling can be layered on later.
+type MessageContentWebFetchToolResult struct {
+	ToolUseID *string         `json:"tool_use_id,omitempty"`
+	Content   json.RawMessage `json:"content,omitempty"`
+}
+
+// MessageContentCodeExecutionToolResult is a minimal model of a
+// code_execution_tool_result / bash_code_execution_tool_result content block.
+// Content (stdout/stderr/return_code, or an error object) is left as raw JSON
+// for forward compatibility.
+type MessageContentCodeExecutionToolResult struct {
+	ToolUseID *string         `json:"tool_use_id,omitempty"`
+	Content   json.RawMessage `json:"content,omitempty"`
+}
+
+// NewWebSearchToolDefinition returns a web_search_20260209 server tool
+// definition (dynamic filtering), supported on Claude 4.6+ models.
+func NewWebSearchToolDefinition() ToolDefinition {
+	return ToolDefinition{
+		Type: ToolTypeWebSearch20260209,
+		Name: "web_search",
+	}
+}
+
+// NewWebFetchToolDefinition returns a web_fetch_20260209 server tool definition,
+// supported on Claude 4.6+ models.
+func NewWebFetchToolDefinition() ToolDefinition {
+	return ToolDefinition{
+		Type: ToolTypeWebFetch20260209,
+		Name: "web_fetch",
+	}
+}
+
+// NewCodeExecutionToolDefinition returns a code_execution_20260521 server tool
+// definition.
+func NewCodeExecutionToolDefinition() ToolDefinition {
+	return ToolDefinition{
+		Type: ToolTypeCodeExecution20260521,
+		Name: "code_execution",
 	}
 }
 

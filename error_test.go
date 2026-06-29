@@ -1,10 +1,28 @@
 package anthropic_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/liushuangls/go-anthropic/v2"
 )
+
+func TestRequestErrorNilErrFormat(t *testing.T) {
+	// Valid JSON body without an "error" field leaves Err nil.
+	reqErr := &anthropic.RequestError{
+		StatusCode: 400,
+		Err:        nil,
+		Body:       []byte("{}"),
+	}
+
+	got := reqErr.Error()
+	if strings.Contains(got, "<nil>") || strings.Contains(got, "err:") {
+		t.Fatalf("expected clean format without nil err segment, got: %q", got)
+	}
+	if !strings.Contains(got, "status code: 400") || !strings.Contains(got, "body: {}") {
+		t.Fatalf("unexpected error format: %q", got)
+	}
+}
 
 func TestIsXError(t *testing.T) {
 	countBool := func(bools []bool) int {

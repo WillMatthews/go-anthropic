@@ -85,6 +85,15 @@ func (e *APIError) Error() string {
 }
 
 func (e *RequestError) Error() string {
+	// Err is nil when the response had a valid JSON body without an "error"
+	// field (e.g. "{}"); only include the err: segment when it is present.
+	if e.Err == nil {
+		return fmt.Sprintf(
+			"anthropic request error status code: %d, body: %s",
+			e.StatusCode,
+			e.Body,
+		)
+	}
 	return fmt.Sprintf(
 		"anthropic request error status code: %d, err: %s, body: %s",
 		e.StatusCode,

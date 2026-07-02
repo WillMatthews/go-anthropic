@@ -617,7 +617,10 @@ func TestCreateMessagesStreamMergesServerToolUsage(t *testing.T) {
 		t.Fatalf("expected Usage.ServerToolUse to be populated, got nil")
 	}
 	if resp.Usage.ServerToolUse.WebSearchRequests != 3 {
-		t.Fatalf("expected 3 web search requests, got %d", resp.Usage.ServerToolUse.WebSearchRequests)
+		t.Fatalf(
+			"expected 3 web search requests, got %d",
+			resp.Usage.ServerToolUse.WebSearchRequests,
+		)
 	}
 }
 
